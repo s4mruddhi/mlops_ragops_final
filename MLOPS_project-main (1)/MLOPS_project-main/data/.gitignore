@@ -1,0 +1,2 @@
+# Do not ignore data/raw text documents
+/processed/chroma_db/

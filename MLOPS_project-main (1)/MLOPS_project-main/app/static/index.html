@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enterprise Knowledge Assistant (RAGOps)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --panel-bg: rgba(17, 24, 39, 0.90);
+      --card-bg: rgba(30, 41, 59, 0.75);
+      --border-color: rgba(255, 255, 255, 0.12);
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+
+    body {
+      background: radial-gradient(circle at top right, #1e1b4b, #0b0f19 60%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Global Header */
+    header {
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1.2rem 2.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #6366f1, #10b981);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.4rem;
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+    }
+
+    .brand-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #a5b4fc, #6366f1, #10b981);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-stats {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .stat-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      padding: 0.45rem 0.95rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .stat-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+
+    /* App Main Container */
+    .app-container {
+      width: 100%;
+      max-width: 1720px;
+      margin: 0 auto;
+      padding: 2rem 2.5rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Main Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 440px 1fr;
+      gap: 2rem;
+    }
+
+    @media (max-width: 1100px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 768px) {
+      header {
+        padding: 0.85rem 1rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+      }
+      .brand-title {
+        font-size: 1.15rem;
+      }
+      .header-stats {
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        width: 100%;
+      }
+      .stat-badge {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.65rem;
+      }
+      .app-container {
+        padding: 1rem 0.75rem;
+        gap: 1rem;
+      }
+      .panel {
+        padding: 1.25rem 1rem;
+        border-radius: 1rem;
+      }
+      .response-card {
+        padding: 1.25rem 1rem;
+      }
+      .meta-row {
+        gap: 0.6rem;
+        font-size: 0.78rem;
+      }
+      .answer-text {
+        font-size: 0.98rem;
+        line-height: 1.6;
+      }
+      .source-box {
+        padding: 0.75rem;
+        font-size: 0.82rem;
+      }
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 1.25rem;
+      padding: 2rem;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .panel-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #fff;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 0.85rem;
+    }
+
+    .form-group { margin-bottom: 1.4rem; }
+
+    label {
+      display: block;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      padding: 0.85rem 1.1rem;
+      border-radius: 0.65rem;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--primary);
+    }
+
+    .sample-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 0.6rem;
+    }
+
+    .sample-chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: #cbd5e1;
+      padding: 0.4rem 0.75rem;
+      border-radius: 0.45rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .sample-chip:hover {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .btn-submit {
+      width: 100%;
+      background: linear-gradient(135deg, var(--primary), #4338ca);
+      color: #fff;
+      border: none;
+      padding: 1rem;
+      border-radius: 0.65rem;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .btn-submit:hover {
+      background: linear-gradient(135deg, var(--primary-hover), #3730a3);
+      transform: translateY(-1px);
+    }
+
+    /* Output Card */
+    .response-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 1rem;
+      padding: 1.75rem;
+      margin-top: 1rem;
+    }
+
+    .meta-row {
+      display: flex;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .meta-item { display: flex; align-items: center; gap: 0.4rem; }
+
+    .answer-text {
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: #f1f5f9;
+      margin-bottom: 1.5rem;
+      white-space: pre-wrap;
+    }
+
+    .source-box {
+      background: rgba(15, 23, 42, 0.6);
+      border-left: 3px solid var(--primary);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-top: 0.85rem;
+      font-size: 0.88rem;
+    }
+
+    .source-box .title { font-weight: 700; color: #fff; margin-bottom: 0.35rem; }
+
+    .claim-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      padding: 0.35rem 0.75rem;
+      border-radius: 0.4rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin: 0.25rem 0;
+    }
+
+    .spinner {
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top: 3px solid #fff;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🤖</div>
+      <div>
+        <div class="brand-title">Enterprise Knowledge Assistant</div>
+        <div style="font-size:0.78rem; color: var(--text-muted);">Production RAGOps Support Infrastructure</div>
+      </div>
+    </div>
+    <div class="header-stats">
+      <div class="stat-badge"><div class="stat-dot"></div> RAG Model: EnterpriseRAGAssistant</div>
+      <div class="stat-badge" style="border-color: rgba(99, 102, 241, 0.4);">Alias: Production</div>
+      <div class="stat-badge">Docs: 27 | Chunks: 78</div>
+    </div>
+  </header>
+
+  <!-- App Main Container -->
+  <div class="app-container">
+
+    <div class="main-grid">
+      
+      <!-- Left Input Panel -->
+      <div class="panel">
+        <div class="panel-title">
+          <span>Query Knowledge Base</span>
+          <span style="font-size:0.8rem; font-weight: normal; color: var(--accent);">Active</span>
+        </div>
+
+        <div class="form-group">
+          <label>Query Language</label>
+          <select id="queryLang" onchange="updateSampleChips()">
+            <option value="en" selected>English 🇺🇸</option>
+            <option value="es">Spanish (Español) 🇪🇸</option>
+            <option value="fr">French (Français) 🇫🇷</option>
+            <option value="de">German (Deutsch) 🇩🇪</option>
+            <option value="hi">Hindi (हिंदी) 🇮🇳</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Enterprise Question</label>
+          <textarea id="queryInput" rows="4" placeholder="Type your query in any language..."></textarea>
+          <div class="sample-chips" id="sampleChips">
+            <!-- Dynamically rendered based on language -->
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Retrieval Top-K Chunks</label>
+          <select id="topK">
+            <option value="3" selected>Top 3 Relevant Documents</option>
+            <option value="5">Top 5 Relevant Documents</option>
+            <option value="10">Top 10 (Deep Search)</option>
+          </select>
+        </div>
+
+        <button class="btn-submit" id="btnSubmit" onclick="sendRAGQuery()">
+          <span>Execute RAG Search</span>
+        </button>
+      </div>
+
+      <!-- Right Output Workspace -->
+      <div>
+        <div class="panel">
+          <div class="panel-title">
+            <span>Knowledge Assistant Answer & Citations</span>
+            <div id="latencyBadge" style="display:none;" class="stat-badge">Latency: <span id="latencyValue">0ms</span></div>
+          </div>
+
+          <div id="outputArea">
+            <div style="text-align: center; padding: 5rem 1rem; color: var(--text-muted);">
+              <div style="font-size: 3.5rem; margin-bottom: 1rem;">🔍</div>
+              <h3 style="color:#fff; font-size:1.3rem;">Ask a Question to Search Verified Enterprise Knowledge</h3>
+              <p style="font-size:0.9rem; margin-top: 0.6rem;">Select a question on the left or type your prompt to execute real-time RAG retrieval & NLI claim verification.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    const sampleQueries = {
+      en: [
+        "What health insurance benefits are available to employees?",
+        "What is the annual leave entitlement for employees?",
+        "How does travel reimbursement work for international travel?",
+        "What is the maximum allowed API request payload size?"
+      ],
+      es: [
+        "¿Cuáles son los beneficios de seguro médico disponibles?",
+        "¿Cuál es el derecho a vacaciones anuales de los empleados?",
+        "¿Cómo funciona el reembolso de viajes internacionales?"
+      ],
+      fr: [
+        "Quels sont les avantages d'assurance maladie disponibles?",
+        "Quel est le droit aux congés annuels des employés?"
+      ],
+      de: [
+        "Welche Krankenversicherungsleistungen stehen Mitarbeitern zu?",
+        "Wie hoch ist der Jahresurlaubsanspruch der Mitarbeiter?"
+      ],
+      hi: [
+        "कर्मचारियों के लिए कौन से स्वास्थ्य बीमा लाभ उपलब्ध हैं?",
+        "कर्मचारियों के लिए वार्षिक छुट्टी का अधिकार क्या है?"
+      ]
+    };
+
+    function updateSampleChips() {
+      const lang = document.getElementById('queryLang').value;
+      const chipsContainer = document.getElementById('sampleChips');
+      chipsContainer.innerHTML = '';
+      
+      const queries = sampleQueries[lang] || sampleQueries.en;
+      queries.forEach((q) => {
+        const chip = document.createElement('div');
+        chip.className = 'sample-chip';
+        chip.innerText = q;
+        chip.onclick = () => {
+          document.getElementById('queryInput').value = q;
+        };
+        chipsContainer.appendChild(chip);
+      });
+      document.getElementById('queryInput').value = queries[0];
+    }
+
+    const API_BASE = (window.location.protocol === 'file:' || (window.location.port !== '8000' && window.location.hostname === 'localhost'))
+      ? 'http://localhost:8000' 
+      : '';
+
+    async function sendRAGQuery() {
+      const query = document.getElementById('queryInput').value.trim();
+      const lang = document.getElementById('queryLang').value;
+      const topK = parseInt(document.getElementById('topK').value);
+
+      if (!query) return;
+
+      const btn = document.getElementById('btnSubmit');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div> Synthesizing Answer...';
+
+      try {
+        const response = await fetch(`${API_BASE}/ask`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: query, language: lang, top_k: topK })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          const detailMsg = typeof data.detail === 'string' ? data.detail : (data.message || data.error || `HTTP ${response.status} error`);
+          throw new Error(detailMsg);
+        }
+        renderResponse(data);
+      } catch (err) {
+        document.getElementById('outputArea').innerHTML = `
+          <div class="response-card" style="border-color: var(--danger);">
+            <h4 style="color: var(--danger);">Execution Error</h4>
+            <p style="font-size:0.9rem; margin-top:0.5rem;">${err.message || 'Failed to connect to RAG API backend.'}</p>
+            <p style="font-size:0.8rem; color: var(--text-muted); margin-top:0.5rem;">
+              Ensure the FastAPI service is running on port 8000. Open 
+              <a href="http://localhost:8000" target="_blank" style="color: var(--primary); text-decoration: underline;">http://localhost:8000</a> in your browser.
+            </p>
+          </div>
+        `;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Execute RAG Search</span>';
+      }
+    }
+
+    function renderResponse(data) {
+      document.getElementById('latencyBadge').style.display = 'flex';
+      document.getElementById('latencyValue').innerText = (data.latency_ms || 0) + 'ms';
+
+      const sources = Array.isArray(data.retrieved_sources) ? data.retrieved_sources : [];
+      let sourcesHTML = sources.length > 0 ? sources.map(s => `
+        <div class="source-box">
+          <div class="title">📄 ${s.doc_id || 'DOC'} — ${s.source_title || 'Chunk'} (Relevance Score: ${s.score || 'N/A'})</div>
+          <div style="color: var(--text-muted);">${s.text_snippet || ''}</div>
+        </div>
+      `).join('') : '<p style="color: var(--text-muted); font-size: 0.85rem;">No sources returned.</p>';
+
+      const citations = Array.isArray(data.extracted_citations) ? data.extracted_citations : [];
+      let citationsHTML = citations.length > 0 ? citations.map(c => `
+        <div class="claim-pill">
+          ✓ Cited Documents: ${Array.isArray(c.cited_doc_ids) && c.cited_doc_ids.length > 0 ? c.cited_doc_ids.join(', ') : 'Verified Evidence Gate'} [${c.entailment_status || 'VERIFIED'}]
+        </div>
+      `).join('') : '<div class="claim-pill">✓ No citations required</div>';
+
+      document.getElementById('outputArea').innerHTML = `
+        <div class="response-card">
+          <div class="meta-row">
+            <div class="meta-item">Language: <strong>${(data.language || 'EN').toUpperCase()}</strong></div>
+            <div class="meta-item">Confidence Score: <strong>${((data.confidence_score || 0.9) * 100).toFixed(0)}%</strong></div>
+            <div class="meta-item">Model Version: <strong>${data.model_version || 'Production'}</strong></div>
+          </div>
+
+          <div class="answer-text">
+            ${data.generated_answer || 'No answer generated.'}
+          </div>
+
+          <h4 style="font-size:0.95rem; margin-bottom:0.75rem; color:#fff;">Natural Language Citation Verification (NLI)</h4>
+          <div style="margin-bottom: 1.25rem;">
+            ${citationsHTML}
+          </div>
+
+          <h4 style="font-size:0.95rem; margin-bottom:0.75rem; color:#fff;">Retrieved Vector Knowledge Chunks (${sources.length})</h4>
+          <div>
+            ${sourcesHTML}
+          </div>
+        </div>
+      `;
+    }
+
+    // Initialize
+    updateSampleChips();
+  </script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+name: MLOPS_Pipeline
+
+"on":
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test_and_evaluate:
+    name: Build, Test & Quality Gate Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Document Validation & Chunking (Phase 4)
+        run: |
+          python scripts/run_phase4_pipeline.py
+
+      - name: Vector Indexing & Retrieval Evaluation (Phase 5 & 7)
+        run: |
+          python scripts/run_phase5_pipeline.py
+          python scripts/run_phase7_evaluation.py
+
+      - name: RAG Evaluation & MLflow Tracking (Phase 8 & 10)
+        run: |
+          python scripts/run_phase8_mlflow.py
+          python scripts/run_phase10_evaluation.py
+
+      - name: REST API & Monitoring Load Test (Phase 12 & 14)
+        run: |
+          python scripts/run_phase12_pipeline.py
+          python scripts/run_phase14_monitoring.py
+
+      - name: Data Drift & Safety Guardrails Audit (Phase 15 & 16)
+        run: |
+          python scripts/run_phase15_drift.py
+          python scripts/run_phase16_guardrails.py
+
+      - name: Run Pytest Integration Test Suite
+        run: |
+          pytest tests/ -v --junitxml=test-results.xml
+
+      - name: Test Production Docker Container Build
+        run: |
+          docker build -t ragops-assistant-api:latest .
